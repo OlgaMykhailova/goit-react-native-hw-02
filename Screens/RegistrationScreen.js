@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   TextInput,
@@ -7,27 +7,46 @@ import {
   TouchableOpacity,
   Alert,
   Text,
-  KeyboardAvoidingView, // новый импорт
+  KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
   ImageBackground,
   Dimensions,
 } from "react-native";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import Add from "../assets/images/add.svg";
 
 export const RegistrationScreen = () => {
+  const [fontsLoaded] = useFonts({
+    RobotoBold: require("../assets/fonts/Roboto-Bold.ttf"),
+    Roboto: require("../assets/fonts/Roboto-Regular.ttf"),
+  });
+
   const [login, setLogin] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [dimensions, setDimensions] = useState(
-    Dimensions.get("window").width - 16 * 2
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width
   );
+  const [windowHeight, setWindowHeight] = useState(
+    Dimensions.get("window").height
+  );
+
+  const [isFocusedLogin, setIsFocusedLogin] = useState(false);
+  const [isFocusedEmail, setIsFocusedEmail] = useState(false);
+  const [isFocusedPassword, setIsFocusedPassword] = useState(false);
+
+  const [isPasswordHidden, setIsPasswordHidden] = useState(true);
 
   useEffect(() => {
     const onChange = () => {
-      const width = Dimensions.get("window").width - 16 * 2;
-      setDimensions(width);
+      const width = Dimensions.get("window").width;
+      setWindowWidth(width);
+      const height = Dimensions.get("window").height;
+      setWindowHeight(height);
     };
     const dimensionsHandler = Dimensions.addEventListener("change", onChange);
 
@@ -48,68 +67,142 @@ export const RegistrationScreen = () => {
     setLogin("");
     setEmail("");
     setPassword("");
-    setIsKeyboardShown(false);
     Keyboard.dismiss();
   };
-
-  const [isKeyboardShown, setIsKeyboardShown] = useState(false);
 
   const keyboardHide = () => {
-    setIsKeyboardShown(false);
     Keyboard.dismiss();
   };
 
+  useEffect(() => {
+    async function prepare() {
+      await SplashScreen.preventAutoHideAsync();
+    }
+    prepare();
+  }, []);
+
+  const onLayout = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ScrollView style={styles.container}>
+    <KeyboardAvoidingView
+      onLayout={onLayout}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
       <TouchableWithoutFeedback onPress={keyboardHide}>
-        <ImageBackground
-          style={styles.imageBG}
-          source={require("../assets/images/imageBG.jpg")}
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          <ImageBackground
             style={{
-              ...styles.wrapper,
-              marginTop: isKeyboardShown ? 147 : 263,
+              ...styles.imageBG,
+              width: windowWidth,
+              height: windowHeight,
             }}
+            source={require("../assets/images/imageBG.jpg")}
           >
-            <Text style={styles.title}>Registration</Text>
-            <View style={{ width: dimensions }}>
-              <TextInput
-                style={styles.input}
-                value={login}
-                placeholder="Login"
-                placeholderTextColor={"#BDBDBD"}
-                onChangeText={loginHandler}
-                onFocus={() => setIsKeyboardShown(true)}
-              ></TextInput>
-              <TextInput
-                style={styles.input}
-                value={email}
-                placeholder="Email"
-                placeholderTextColor={"#BDBDBD"}
-                onChangeText={emailHandler}
-                onFocus={() => setIsKeyboardShown(true)}
-                keyboardType="email-address"
-              ></TextInput>
-              <TextInput
-                style={styles.input}
-                value={password}
-                placeholder="Password"
-                placeholderTextColor={"#BDBDBD"}
-                secureTextEntry={true}
-                onFocus={() => setIsKeyboardShown(true)}
-                onChangeText={passwordHandler}
-              ></TextInput>
-              <TouchableOpacity style={styles.button} onPress={onLogin}>
-                <Text style={styles.textButton}>Sign Up</Text>
-              </TouchableOpacity>
-              <Text style={styles.link}>Have already an account? Sign in</Text>
-            </View>
-          </KeyboardAvoidingView>
-        </ImageBackground>
+            <ScrollView>
+              <View
+                style={{
+                  ...styles.wrapper,
+                  width: windowWidth,
+                  marginTop: windowWidth > 500 ? 100 : 263,
+                }}
+              >
+                <View
+                  style={{
+                    ...styles.imageThumb,
+                    left: (windowWidth - 120) / 2,
+                  }}
+                ></View>
+                <TouchableOpacity
+                  style={{
+                    ...styles.addButton,
+                    left: windowWidth / 2 + 47.5,
+                  }}
+                >
+                  <Add />
+                </TouchableOpacity>
+                <View style={{ width: windowWidth - 16 * 2 }}>
+                  <Text style={{ ...styles.title, fontFamily: "RobotoBold" }}>
+                    Registration
+                  </Text>
+                  <TextInput
+                    style={{
+                      ...styles.input,
+                      borderColor: isFocusedLogin ? "#FF6C00" : "#E8E8E8",
+                      fontFamily: "Roboto"
+                    }}
+                    onFocus={() => setIsFocusedLogin(true)}
+                    onBlur={() => setIsFocusedLogin(false)}
+                    value={login}
+                    placeholder="Login"
+                    cursorColor={"#BDBDBD"}
+                    placeholderTextColor={"#BDBDBD"}
+                    onChangeText={loginHandler}
+                  ></TextInput>
+                  <TextInput
+                    style={{
+                      ...styles.input,
+                      borderColor: isFocusedEmail ? "#FF6C00" : "#E8E8E8",
+                      fontFamily: "Roboto"
+                    }}
+                    onFocus={() => setIsFocusedEmail(true)}
+                    onBlur={() => setIsFocusedEmail(false)}
+                    value={email}
+                    placeholder="Email"
+                    cursorColor={"#BDBDBD"}
+                    placeholderTextColor={"#BDBDBD"}
+                    onChangeText={emailHandler}
+                    keyboardType="email-address"
+                  ></TextInput>
+                  <TextInput
+                    style={{
+                      ...styles.input,
+                      borderColor: isFocusedPassword ? "#FF6C00" : "#E8E8E8",
+                      fontFamily: "Roboto"
+                    }}
+                    onFocus={() => setIsFocusedPassword(true)}
+                    onBlur={() => setIsFocusedPassword(false)}
+                    value={password}
+                    placeholder="Password"
+                    cursorColor={"#BDBDBD"}
+                    placeholderTextColor={"#BDBDBD"}
+                    secureTextEntry={isPasswordHidden}
+                    onChangeText={passwordHandler}
+                  ></TextInput>
+                  <TouchableOpacity
+                    style={styles.showPassword}
+                    onPress={() =>
+                      setIsPasswordHidden((prevState) => !prevState)
+                    }
+                  >
+                    <Text style={{...styles.textShowPassword,  fontFamily: "Roboto"}}>
+                      {isPasswordHidden ? "Show" : "Hide"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.button} onPress={onLogin}>
+                    <Text style={{...styles.textButton,  fontFamily: "Roboto"}}>Sign Up</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity>
+                    <Text style={{...styles.link,  fontFamily: "Roboto"}}>
+                      Have already an account? Sign in
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </ImageBackground>
+        </View>
       </TouchableWithoutFeedback>
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -129,6 +222,20 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
   },
 
+  imageThumb: {
+    top: -60,
+    position: "absolute",
+    width: 120,
+    height: 120,
+    backgroundColor: "#F6F6F6",
+    borderRadius: 16,
+  },
+  addButton: {
+    position: "absolute",
+    top: 21,
+    width: 25,
+    height: 25,
+  },
   title: {
     marginTop: 92,
     marginBottom: 33,
@@ -146,9 +253,21 @@ const styles = StyleSheet.create({
     height: 50,
     borderWidth: 1,
     borderRadius: 8,
-    borderColor: "#E8E8E8",
+
     color: "#212121",
   },
+  showPassword: {
+    position: "absolute",
+    right: 0,
+    bottom: 205,
+    paddingRight: 16,
+  },
+  textShowPassword: {
+    fontSize: 16,
+    lineHeight: 19,
+    color: "#1B4371",
+  },
+
   button: {
     height: 51,
     marginTop: 27,
@@ -164,6 +283,7 @@ const styles = StyleSheet.create({
   },
   link: {
     marginTop: 16,
+    marginBottom: 60,
     textAlign: "center",
     color: "#1B4371",
   },
